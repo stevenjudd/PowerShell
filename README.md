@@ -1,2 +1,2 @@
 # PowerShell
-PowerShell scripts that I hvae written, modified, or use.
+PowerShell scripts that I have written, modified, or use.
