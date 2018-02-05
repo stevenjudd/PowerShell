@@ -58,7 +58,7 @@ Function Get-sjLocalAdministrators
         {
             $computerObj = [ADSI]("WinNT://" + $pc + ",computer")
             $Group = $computerObj.psbase.children.find("Administrators")
-            $members= $Group.psbase.invoke("Members") | foreach {$_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null)}
+            $members= $Group.psbase.invoke("Members") | ForEach-Object {$_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null)}
             
             foreach($user in $members)
             {
