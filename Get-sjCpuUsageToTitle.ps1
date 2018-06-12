@@ -8,16 +8,16 @@
         Updated by [name] on [yyyy/mm/dd] to ...
         Version 20180612.1 (please use yyyymmdd.x notation)
     .SYNOPSIS
-        Function to create a backgroud job to update the window title with the CPU percent
+        Function to update the window title with username, version, processId, CPU percent
     .DESCRIPTION
         This function will create a job and a system timer that will get the current
-        CPU percent and update the window title with the username, the PowerShell version,
-        the shell process ID, and the current CPU percent.
+        CPU percent and update the window title with the username, the PowerShell
+        version, the shell process ID, and the current CPU percent.
     .LINK
         https://github.com/stevenjudd/PowerShell/blob/master/Get-sjCpuUsageToTitle.ps1https://github.com/stevenjudd/PowerShell
     .EXAMPLE
         Get-sjCpuUsageToTitle
-        This command runs the function to start a background job that will update
+        This command runs the function to start two background jobs that will update
         the title of the window with the username, the PowerShell version, the shell
         process ID, and the current CPU percent.
     #>
