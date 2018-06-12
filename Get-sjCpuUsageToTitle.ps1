@@ -7,6 +7,9 @@
         Modified by Steven Judd to be a function, add a parameter for computername, and output result as an object
         Updated by [name] on [yyyy/mm/dd] to ...
         Version 20180612.1 (please use yyyymmdd.x notation)
+
+        Features to add:
+            Add a parameter to specify the interval to update the title
     .SYNOPSIS
         Function to update the window title with username, version, processId, CPU percent
     .DESCRIPTION
