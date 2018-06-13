@@ -95,4 +95,4 @@ Function Get-FileMetaData
 } #end Get-FileMetaData
 
 #test cases
-Get-FileMetaData -Name C:\Users\steve\OneDrive
+#Get-FileMetaData -Name C:\Users\steve\OneDrive
