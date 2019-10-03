@@ -18,7 +18,7 @@ catch {
 
 #email the results
 if ($OneDriveDeltas) {
-    #$Credential = New-Object System.Management.Automation.PSCredential -ArgumentList 'stevenkjudd@hotmail.com', $('XXXXX' | ConvertTo-SecureString -AsPlainText -Force)
+    # $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList 'stevenkjudd@hotmail.com', $('XXXXX' | ConvertTo-SecureString -AsPlainText -Force)
     $Credential = Get-Credential
     $Body = @"
 Report save location: $LogFile
@@ -27,17 +27,18 @@ Object save location: $XmlFile
 $(Get-Content -Path $LogFile | Out-String)
 "@
     $Params = @{
-        Body       = $Body #"Report save location: $XmlFile `n`n$(Import-Clixml -Path $XmlFile | Format-Table -AutoSize | Out-String)"
-        To         = 'stevenjudd@outlook.com'
-        From       = 'stevenkjudd@hotmail.com'
-        Subject    = "OneDrive Automation Report on $(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        SmtpServer = 'smtp.live.com'
-        Port       = "587"
-        Credential = $Credential
-        UseSsl     = $true
+        Body        = $Body #"Report save location: $XmlFile `n`n$(Import-Clixml -Path $XmlFile | Format-Table -AutoSize | Out-String)"
+        To          = 'stevenjudd@outlook.com'
+        From        = 'stevenkjudd@hotmail.com'
+        Subject     = "OneDrive Automation Report on $(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        SmtpServer  = 'smtp.live.com'
+        Port        = "587"
+        Credential  = $Credential
+        UseSsl      = $true
+        ErrorAction = "Stop"
     }
     try {
-        Send-MailMessage @Params -ErrorAction Stop
+        Send-MailMessage @Params
         & (Join-Path -Path $PSScriptRoot -ChildPath "Update-sjOneDriveDeltas.ps1")
     }
     catch {
