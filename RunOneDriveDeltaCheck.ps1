@@ -36,6 +36,11 @@ $(Get-Content -Path $LogFile | Out-String)
         Credential = $Credential
         UseSsl     = $true
     }
-    Send-MailMessage @Params
-    & (Join-Path -Path $PSScriptRoot -ChildPath "Update-sjOneDriveDeltas.ps1")
+    try {
+        Send-MailMessage @Params -ErrorAction Stop
+        & (Join-Path -Path $PSScriptRoot -ChildPath "Update-sjOneDriveDeltas.ps1")
+    }
+    catch {
+        throw $_
+    }
 }
