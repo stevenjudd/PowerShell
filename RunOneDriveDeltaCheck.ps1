@@ -6,7 +6,7 @@ if (-not(Test-Path $LogPath)) {
 $LogFile = Join-Path -Path $LogPath -ChildPath "OneDriveModifyNewRemoveLog-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
 $XmlFile = Join-Path -Path $LogPath -ChildPath "OneDriveModifyNewRemoveXml-$(Get-Date -Format 'yyyyMMdd-HHmmss').xml"
 try {
-    $OneDriveDeltas = .\Get-sjOneDriveDeltas.ps1
+    $OneDriveDeltas = & (Join-Path -Path $PSScriptRoot -ChildPath "Get-sjOneDriveDeltas.ps1")
     if ($OneDriveDeltas) {
         $OneDriveDeltas | Export-Clixml -Path $XmlFile -Force -ErrorAction Stop
         $OneDriveDeltas | ConvertTo-Csv -NoTypeInformation -ErrorAction Stop | Out-File -FilePath $LogFile -Force -ErrorAction Stop
@@ -37,5 +37,5 @@ $(Get-Content -Path $LogFile | Out-String)
         UseSsl     = $true
     }
     Send-MailMessage @Params
-    .\Update-sjOneDriveDeltas.ps1
+    & (Join-Path -Path $PSScriptRoot -ChildPath "Update-sjOneDriveDeltas.ps1")
 }

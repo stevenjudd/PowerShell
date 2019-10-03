@@ -3,7 +3,7 @@ $OneDrivePath = (Join-Path -Path $HOME -ChildPath OneDrive) #| Join-Path -ChildP
 #$OneDriveDeltaPath = "E:\OneDriveDeltas"
 $SourceFileList = "E:\OneDriveDeltas\OneDriveFileList.csv"
 $OneDriveSourceList = Get-Content -Path $SourceFileList
-$OneDriveList = Get-ChildItem -Path $OneDrivePath | Select-Object FullName, Length, LastWriteTime, CreationTime | Sort-Object -Property FullName | ConvertTo-Csv -NoTypeInformation
+$OneDriveList = Get-ChildItem -Path $OneDrivePath -Recurse | Select-Object FullName, Length, LastWriteTime, CreationTime | Sort-Object -Property FullName | ConvertTo-Csv -NoTypeInformation
 $Deltas = Compare-Object -ReferenceObject $OneDriveList -DifferenceObject $OneDriveSourceList
 
 if ($Deltas) {
