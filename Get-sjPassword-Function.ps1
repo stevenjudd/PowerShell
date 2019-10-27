@@ -7,8 +7,12 @@ function Get-sjPassword {
         Updated by Steven Judd on 2014/06/13
         Updated by Steven Judd on 2015/08/18 to add the option to retreive the 
             password from a file as well as the registry
-        Updated by Steven Judd on 2019/10/27 to remove the File parameter, tighten up
+        Updated by Steven Judd on 2019/10/26 to remove the File parameter, tighten up
             the code, make the Filename mandatory
+        Updated by Steven Judd on 2019/10/27 to add a Clixml switch parameter to allow
+            reading in credentials from an XML file created with either Set-sjPassword
+            using the -Clixml switch or using Export-Clixml to export a PSCredential
+            object into a file.
 
         Version 20191027.1
         
@@ -31,6 +35,13 @@ function Get-sjPassword {
     .PARAMETER FileName
         This parameter will specify the filename from which to get the encrypted
         credentials. This value is mandatory if the parameter is specified.
+    .PARAMETER Clixml
+        This switch parameter will import the credentials gathered from the filename
+        specified in the FileName parameter using Import-Clixml.
+        
+        Note: This option will return the username and password stored in the specified
+        FileName as a PSCredential object, overriding the specified username in the
+        UserName parameter.
     .EXAMPLE
         Get-sjPassword
         This command will retrieve the password for the current user from the key
@@ -57,11 +68,6 @@ function Get-sjPassword {
             ParameterSetName = "File")]
         [string]$UserName = "$env:userdomain\$env:username",	#current user with domain
         
-        # [Parameter(Mandatory=$false,
-        #            Position=1,
-        #            ParameterSetName="File")]
-        #     [switch]$File,
-
         [Parameter(Mandatory = $true,
             Position = 1,
             ParameterSetName = "File",
@@ -75,7 +81,12 @@ function Get-sjPassword {
                     throw "Destination $_ is invalid. Please enter the correct filename or run Set-sjPassword."
                 }
             })]
-        [string]$Filename #= "$env:TEMP\PasswordCache\$Username.txt"
+        [string]$Filename,
+
+        [Parameter(Mandatory = $false,
+            Position = 2,
+            ParameterSetName = "File")]
+        [switch]$Clixml
     ) 
 
     if ($Filename) {
@@ -90,9 +101,15 @@ function Get-sjPassword {
         #Get the password from the file specified
         try {
             Write-Verbose "Get password from File: $Filename"
-            $Password = Get-Content -Path $Filename | ConvertTo-SecureString
-            $Credential = New-Object System.Management.Automation.PsCredential($UserName, $Password)
-            Return $Credential
+            if ($Clixml) {
+                $Credential = Import-Clixml -Path $Filename
+                Return $Credential
+            }
+            else {
+                $Password = Get-Content -Path $Filename | ConvertTo-SecureString
+                $Credential = New-Object System.Management.Automation.PsCredential($UserName, $Password)
+                Return $Credential
+            }
         }
         catch {
             Write-Error $_
@@ -126,4 +143,5 @@ function Get-sjPassword {
 # Get-sjPassword
 # Get-sjPassword -UserName test -Verbose
 # Get-sjPassword -UserName test -Filename testPwd.txt -Verbose
+# Get-sjPassword -UserName test -Filename testPwd.txt -Clixml -Verbose
 # Get-sjPassword -Filename -Verbose

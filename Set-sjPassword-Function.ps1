@@ -8,8 +8,11 @@ function Set-sjPassword {
         Updated by Steven Judd on 2015/04/13 
         Updated by Steven Judd on 2015/08/17 to add the option to store the password
             in a file instead of the registry
-        Updated by Steven Judd on 2019/10/27 to remove the File parameter, tighten up
+        Updated by Steven Judd on 2019/10/26 to remove the File parameter, tighten up
             the code, make the Filename mandatory
+        Updated by Steven Judd on 2019/10/27 to add a Clixml switch parameter to allow
+            taking the credentials specified and export a PSCredential object into the
+            FileName specified.
 
         Version 20191027.1
         
@@ -41,6 +44,10 @@ function Set-sjPassword {
     .PARAMETER FileName
         This parameter will specify the filename into which to save the encrypted
         credentials. This value is mandatory if the parameter is specified.
+    .PARAMETER Clixml
+        This switch parameter will export the credentials gathered into the filename 
+        specified in the FileName parameter using Export-Clixml. It will store the 
+        username and the encrypted password in the file.
     .EXAMPLE
         Set-sjPassword
         This command will prompt for the password for the current user and store the
@@ -67,16 +74,16 @@ function Set-sjPassword {
             ParameterSetName = "File")]
         [string]$UserName = "$env:userdomain\$env:username",	#current user with domain
 
-        # [Parameter(Mandatory = $false,
-        #     Position = 1,
-        #     ParameterSetName = "File")]
-        # [switch]$File,
-
         [Parameter(Mandatory = $true,
             Position = 1,
             ParameterSetName = "File",
             HelpMessage = "Enter a valid path and filename for the password file")]
-        [string]$Filename
+        [string]$Filename,
+
+        [Parameter(Mandatory = $false,
+            Position = 2,
+            ParameterSetName = "File")]
+        [switch]$Clixml
     )
 
     Write-Verbose "Get Username and password"
@@ -124,7 +131,12 @@ function Set-sjPassword {
 
         try {
             Write-Verbose "Writing password to file -- $Filename"
-            Out-File -FilePath $Filename -InputObject $Password -Force
+            if ($Clixml) {
+                $Cred | Export-Clixml -Path $Filename -Force
+            }
+            else {
+                Out-File -FilePath $Filename -InputObject $Password -Force
+            }
             Write-Verbose "Contents of $Filename -- $(Get-Content $Filename)"
         }
         catch {
@@ -169,4 +181,5 @@ function Set-sjPassword {
 # Set-sjPassword
 # Set-sjPassword -UserName test -Verbose
 # Set-sjPassword -UserName test -Filename (Join-Path -Path $env:temp -ChildPath "testPwd.txt") -Verbose
+# Set-sjPassword -UserName test -Filename (Join-Path -Path $env:temp -ChildPath "testPwd.txt") -Clixml -Verbose
 # Set-sjPassword -Filename -Verbose
