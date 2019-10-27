@@ -6,6 +6,7 @@ if (-not(Test-Path $LogPath)) {
 $LogFile = Join-Path -Path $LogPath -ChildPath "OneDriveModifyNewRemoveLog-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
 $XmlFile = Join-Path -Path $LogPath -ChildPath "OneDriveModifyNewRemoveXml-$(Get-Date -Format 'yyyyMMdd-HHmmss').xml"
 try {
+    #run the script to generate the deltas
     $OneDriveDeltas = & (Join-Path -Path $PSScriptRoot -ChildPath "OneDriveDeltasOutput.ps1")
     if ($OneDriveDeltas) {
         $OneDriveDeltas | Export-Clixml -Path $XmlFile -Force -ErrorAction Stop
@@ -19,7 +20,11 @@ catch {
 #email the results
 if ($OneDriveDeltas) {
     # $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList 'stevenkjudd@hotmail.com', $('XXXXX' | ConvertTo-SecureString -AsPlainText -Force)
-    $Credential = Get-Credential
+    # $Credential = Get-Credential
+    if (-Not(Get-Command -Name Get-sjPassword -ErrorAction SilentlyContinue)) {
+        . (Join-Path -Path $PSScriptRoot -ChildPath .\Get-sjPassword-Function.ps1)
+    }
+    $Credential = Get-sjPassword -UserName "stevenkjudd@hotmail.com"
     $Body = @"
 Report save location: $LogFile
 Object save location: $XmlFile
