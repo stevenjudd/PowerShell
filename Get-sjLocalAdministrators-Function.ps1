@@ -1,7 +1,5 @@
-Function Get-sjLocalAdministrators
-{
+Function Get-sjLocalAdministrators {
 
-    #################################
     <#
     .NOTES
         Steve Schofield  
@@ -15,11 +13,11 @@ Function Get-sjLocalAdministrators
         This function will connect to a computer or a list of computers and return
         a list of users or groups that are part of the local "administrators" group.
     .LINK
-        https://github.com/stevenjudd/PowerShell
+        https://github.com/stevenjudd
     .PARAMETER Name
         This is either a single computername or an array of computer names. It can
         take a value from the pipeline. It also supports the alias of computername
-        and host. By default it will use the value of $env:computername.
+        and host.
     .EXAMPLE
         Get-sjLocalAdministrators
         This command runs the script and will prompt for the names of the computers 
@@ -39,41 +37,33 @@ Function Get-sjLocalAdministrators
         field to Get-sjLocalAdministrators, returning all the local administrator 
         accounts for all computers in the domain.
     #>
-    #################################
 
     Param(
         [parameter(
-            Mandatory=$false, 
-            ValueFromPipeline=$true, 
-            ValueFromPipelineByPropertyName=$true)]
-        [Alias('host','computername')]
-        [String[]]$Name	= $env:COMPUTERNAME #Specify the Computernames to check RDP sessions
+            Mandatory = $false, 
+            ValueFromPipeline = $true, 
+            ValueFromPipelineByPropertyName = $true)]
+        [Alias('host', 'computername')]
+        [String[]]$Name = $env:COMPUTERNAME #Specify the Computernames to check RDP sessions
     )
-    
-    Begin{}
 
-    Process
-    {
-        Foreach ($pc in $Name)
-        {
-            $computerObj = [ADSI]("WinNT://" + $pc + ",computer")
+    Begin {}
+
+    Process {
+        Foreach ($item in $Name) {
+            $computerObj = [ADSI]("WinNT://" + $item + ",computer")
             $Group = $computerObj.psbase.children.find("Administrators")
-            $members= $Group.psbase.invoke("Members") | ForEach-Object {$_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null)}
-            
-            foreach($user in $members)
-            {
-                $Results=[ordered]@{
-                        'ComputerName'=$pc;
-                        'LocalAdmin'=$user
-                        }
-                $Obj=New-Object -TypeName PSObject -Property $Results 
-                Write-Output $Obj
-
+            $members = $Group.psbase.invoke("Members") | ForEach-Object { $_.GetType().InvokeMember("Name", 'GetProperty', $null, $_, $null) }
+        
+            foreach ($user in $members) {
+                [PSCustomObject]@{
+                    'ComputerName' = $item;
+                    'LocalAdmin'   = $user
+                }
             } #end foreach $user in $members
-
-        } #end foreach $pc in $name
+        } #end foreach $item in $name
     } #end process
 
-    End{}
+    End {}
 
-} #end Get-sjLocalAdministrators Function
+} #end Function Get-sjLocalAdministrators
