@@ -18,6 +18,9 @@ catch {
 }
 
 #email the results
+$to = "to@email.com"
+$from = "from@email.com"
+
 if ($OneDriveDeltas) {
     # $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList 'stevenkjudd@hotmail.com', $('XXXXX' | ConvertTo-SecureString -AsPlainText -Force)
     # $Credential = Get-Credential
@@ -33,8 +36,8 @@ $(Get-Content -Path $LogFile | Out-String)
 "@
     $Params = @{
         Body        = $Body #"Report save location: $XmlFile `n`n$(Import-Clixml -Path $XmlFile | Format-Table -AutoSize | Out-String)"
-        To          = 'stevenjudd@outlook.com'
-        From        = 'stevenkjudd@hotmail.com'
+        To          = $to
+        From        = $from
         Subject     = "OneDrive Automation Report on $(Get-Date -Format 'yyyyMMdd-HHmmss')"
         SmtpServer  = 'smtp.live.com'
         Port        = "587"
