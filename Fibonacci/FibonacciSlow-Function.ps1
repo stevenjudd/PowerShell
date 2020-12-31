@@ -1,3 +1,5 @@
+# logic initially from @IrwinStrachan
+# https://twitter.com/IrwinStrachan/status/1344176470466375681?s=20
 function FibinacciSlow ([Int]$n) {
     $result = switch ($n) {
         -2 { -1 ; break }

@@ -1,3 +1,5 @@
+# logic initially from @IrwinStrachan 
+# https://twitter.com/IrwinStrachan/status/1344176660183179265?s=20
 function FibinacciFast ([Int]$n, [hashtable]$memo = @{}) {
     if ($memo.Keys -contains $n) {
         return $memo[$n]
