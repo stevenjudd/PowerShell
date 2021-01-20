@@ -1,5 +1,4 @@
-Function Get-sjExtendedMetaData
-{
+Function Get-sjExtendedMetaData {
     #Requires -Version 2.0 
     <# 
     .Notes 
@@ -68,12 +67,10 @@ Function Get-sjExtendedMetaData
             ValueFromPipelineByPropertyName = $true)]
         #[Alias('directory', 'folder', 'file')]
         [ValidateScript( {
-                if (Test-Path $_)
-                {
+                if (Test-Path $_) {
                     $true
                 }
-                else
-                {
+                else {
                     throw "Please enter a valid path. Unable to validate $_"
                 }
             })]
@@ -82,78 +79,74 @@ Function Get-sjExtendedMetaData
         [switch]$Recurse
     )
 
-    begin
-    {
+    begin {
         $objShell = New-Object -ComObject Shell.Application
-    }
 
-    process
-    {
-        foreach ($ArrayItem in $FullName)
-        { 
+        function Get-FileExtProperties {
+            param (
+                [System.__ComObject]$FileObject
+            )
+
+            Write-Verbose -Message "Getting extended file details: $($FileObject.Path)"
+            $FileMetaData = @{}
+            foreach ($item in $FileExtProperties) {
+                if ($objFolder.getDetailsOf($FileObject, $item.IndexNumber)) {
+                    $FileMetaData.add($objFolder.getDetailsOf($objFolder.items, $item.IndexNumber), $objFolder.getDetailsOf($FileObject, $item.IndexNumber))
+                } #end if 
+            } #end foreach $item in $FileExtProperties
+            [PSCustomObject]$FileMetaData
+        }
+
+
+        Write-Verbose "Building Extended File Attributes for current filesystem using $env:SystemRoot"
+        $com = (New-Object -ComObject Shell.Application).NameSpace($env:SystemRoot)
+        $FileExtProperties = for ($index = 0; $index -ne 400; $index++) {
+            New-Object -TypeName PSCustomObject -Property @{
+                IndexNumber = $Index
+                Attribute   = $com.GetDetailsOf($com, $index)
+            } | Where-Object { $_.Attribute }
+        }
+    } #end begin block
+
+    process {
+        foreach ($ArrayItem in $FullName) { 
             Write-Verbose "Analyzing: $ArrayItem"
             #is the item a folder?
-            if ((Get-Item -Path $ArrayItem).PSIsContainer)
-            {
-                $a = 0
+            if ((Get-Item -Path $ArrayItem).PSIsContainer) {
                 $objFolder = $objShell.namespace($ArrayItem) 
-                $numberOfItems = $objFolder.Items().count
-                $currentFileNumber = 1
-                foreach ($File in $objFolder.items())
-                {
-                    Write-Progress -Activity "Scanning folder $ArrayItem" -Status "Processing $currentFileNumber of $numberOfItems :: $([math]::Round($currentFileNumber / $numberOfItems * 100))% Complete " -PercentComplete ($currentFileNumber / $numberOfItems * 100)
+                # $numberOfItems = $objFolder.Items().count
+                # $CurrentItemNumber = 1
+                foreach ($File in $objFolder.items()) {
+                    # $WriteProgressParams = {
+                    #     Activity = "Scanning folder $ArrayItem"
+                    #     Status = "Processing $CurrentItemNumber of $numberOfItems :: $([math]::Round($CurrentItemNumber / $numberOfItems * 100))% Complete "
+                    #     PercentComplete = ($CurrentItemNumber / $numberOfItems * 100)
+                    # }
+                    # Write-Progress @WriteProgressParams
                     Write-Verbose -Message "Getting extended file details: $($File.Name)"
-                    $FileMetaData = New-Object PSOBJECT
-                    $a = 0 
-                    for ($a ; $a -le 400; $a++)
-                    {
-                        if ($objFolder.getDetailsOf($File, $a))
-                        {
-                            $hash += @{$($objFolder.getDetailsOf($objFolder.items, $a)) = $($objFolder.getDetailsOf($File, $a)) }
-                            if ($objFolder.getDetailsOf($objFolder.items, $a))
-                            {
-                                $FileMetaData | Add-Member $hash
-                            }
-                            $hash.clear()
-                        } #end if 
-                    } #end for  
-                    $FileMetaData
                     #is the item a folder
-                    if ($File.IsFolder)
-                    {
-                        if ($Recurse)
-                        {
+                    if ($File.IsFolder) {
+                        if ($Recurse) {
                             Get-sjExtendedMetaData -Name $File.Path -Recurse 
                         }
+                    } #end if $File.IsFolder
+                    else {
+                        Get-FileExtProperties -FileObject $File
                     }
-                    $currentFileNumber ++
+                    # $CurrentItemNumber ++
                 } #end foreach $file 
             } #end if ArrayItem is a container
-            else #ArrayItem is not a container
-            {
+            else {
+                #ArrayItem is not a container
                 $ArrayItemParent = Split-Path -Path $ArrayItem
                 $objFolder = $objShell.namespace($ArrayItemParent)
-                foreach ($File in $objFolder.items())
-                {
+                foreach ($File in $objFolder.items()) {
                     #loop through items until ArrayItem
-                    if ($ArrayItem -eq $File.Path)
-                    {
+                    if ($ArrayItem -eq $File.Path) {
                         Write-Verbose -Message "Getting extended file details: $($File.Name)"
-                        $FileMetaData = New-Object PSOBJECT
-                        $a = 0
-                        for ($a ; $a -le 400; $a++)
-                        {
-                            if ($objFolder.getDetailsOf($File, $a))
-                            {
-                                $hash += @{$($objFolder.getDetailsOf($objFolder.items, $a)) = $($objFolder.getDetailsOf($File, $a)) }
-                                if ($objFolder.getDetailsOf($objFolder.items, $a))
-                                {
-                                    $FileMetaData | Add-Member $hash
-                                }
-                                $hash.clear()
-                            } #end if 
-                        } #end for  
-                        $FileMetaData
+                        Get-FileExtProperties -FileObject $File
+                        #break out of foreach loop
+                        break
                     } #end if ArrayItem -eq File
                 } #end foreach File in ObjFolder.items
             } #end else (Name is not a container)
@@ -173,3 +166,5 @@ Function Get-sjExtendedMetaData
 #Get-sjExtendedMetaData -FullName C:\Users\steve\OneDrive\186.JPG, C:\Users\steve\OneDrive\Vienna #multiple files and folders
 #using pipeline
 #Get-ChildItem C:\Users\steve\OneDrive *.jpg | Get-sjExtendedMetaData
+# Get-sjExtendedMetaData -FullName (gi $HOME\OneDrive\Pictures\2019\gtfo2.png).FullName -Verbose
+# Get-sjExtendedMetaData -FullName $PWD
