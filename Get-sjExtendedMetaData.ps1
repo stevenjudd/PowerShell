@@ -1,10 +1,7 @@
 Function Get-sjExtendedMetaData {
-    #Requires -Version 2.0 
     <# 
     .Notes 
-        Name:  Get-sjExtendedMetaData 
-        Script: Get-sjExtendedMetaDataReturnObject.ps1 
-        Author: ed wilson, msft 
+        Based on script by Ed Wilson, msft 
         Modified by Steven Judd on 20180325 to:
             return MetaData on a single file, folder, or multiple files
             Accept file objects from the pipeline
@@ -13,7 +10,8 @@ Function Get-sjExtendedMetaData {
             added additional attributes to return and confirm they have data
             added a -Recurse switch option to traverse folders
             added Write-Verbose output
-        Last edit: 20180325
+        Modified by Steven Judd in Jan 2021 to do a bunch of stuff (see repo)
+        Last edit: 20210123
         Keywords: Metadata, Storage, Files 
         HSG: HSG-2-5-14 
         comments: Uses the Shell.APplication object to get file metadata 
@@ -26,11 +24,16 @@ Function Get-sjExtendedMetaData {
         Get-sjExtendedMetaData -FullName (gci e:\music).FullName -Recurse
         
     .Synopsis 
-        This function gets file and folder metadata and returns it as a custom PS Object  
+        This function gets file metadata and returns it as a custom PS Object.
     .Description 
-        This function gets file and folder metadata using the Shell.Application object and 
-        returns a custom PSObject object that can be sorted, filtered or otherwise 
-        manipulated. 
+        This function gets file and folder metadata using the Shell.Application object
+        and returns a custom PSObject object that can be sorted, filtered or otherwise 
+        manipulated. You must pass the full path to the object to evaluate due to how
+        the Shell.Application namespace works. You can pass a file or directory or an
+        array of files and/or directories. You can specify if you want to recurse
+        through the directories. You can also specify which extended properties to
+        return. Note, specifying only the properites you need reduces the time to return
+        the results.
     .Example 
         Get-sjExtendedMetaData -FullName "e:\music" 
         Gets file metadata for all files in the e:\music directory 
@@ -54,8 +57,23 @@ Function Get-sjExtendedMetaData {
         This command will pass all of the JPG files in the OneDrive folder
         to the function, which will return the extended file information for
         each file.
+    .Example
+        Get-sjExtendedMetaData -FullName (Get-ChildItem $HOME\OneDrive\Pictures *.jpg -Recurse).FullName -Verbose
+        This command will use return all of the .jpg files in the OneDrive Pictures
+        directory including subfolders and return all of the extended data. It will
+        return verbose output for the function.
+    .Example
+        Get-sjExtendedMetaData -FullName $PWD.path -Properties "Name", "Date taken", "Size"
+        This command will return the Name, Date taken, and Size extended properties for
+        the current directory.
     .Parameter FullName 
         The full path for the files or folders to return extended metadata. 
+    .Parameter Properties 
+        Specify which properties for which to return extended metadata. Specifying only
+        the properties required will reduce the time to return the results.
+    .Parameter Recurse 
+        Specify whether to return metadata on the objects recursively through
+        the subfolders of any folders specified in the Fullname parameter.
     .Link 
         https://github.com/stevenjudd/PowerShell
     #>
@@ -75,6 +93,8 @@ Function Get-sjExtendedMetaData {
                 }
             })]
         [string[]]$FullName = $PWD.path,
+
+        [string[]]$Properties,
 
         [switch]$Recurse
     )
@@ -101,10 +121,18 @@ Function Get-sjExtendedMetaData {
         Write-Verbose "Building Extended File Attributes for current filesystem using $env:SystemRoot"
         $com = (New-Object -ComObject Shell.Application).NameSpace($env:SystemRoot)
         $FileExtProperties = for ($index = 0; $index -ne 400; $index++) {
-            New-Object -TypeName PSCustomObject -Property @{
-                IndexNumber = $Index
-                Attribute   = $com.GetDetailsOf($com, $index)
-            } | Where-Object { $_.Attribute }
+            if ($Properties) {
+                [PSCustomObject]@{
+                    IndexNumber = $Index
+                    Attribute   = $com.GetDetailsOf($com, $index)
+                } | Where-Object { $_.Attribute -in $Properties }
+            }
+            else {
+                [PSCustomObject]@{
+                    IndexNumber = $Index
+                    Attribute   = $com.GetDetailsOf($com, $index)
+                } | Where-Object { $_.Attribute }
+            }
         }
     } #end begin block
 
@@ -114,26 +142,17 @@ Function Get-sjExtendedMetaData {
             #is the item a folder?
             if ((Get-Item -Path $ArrayItem).PSIsContainer) {
                 $objFolder = $objShell.namespace($ArrayItem) 
-                # $numberOfItems = $objFolder.Items().count
-                # $CurrentItemNumber = 1
                 foreach ($File in $objFolder.items()) {
-                    # $WriteProgressParams = {
-                    #     Activity = "Scanning folder $ArrayItem"
-                    #     Status = "Processing $CurrentItemNumber of $numberOfItems :: $([math]::Round($CurrentItemNumber / $numberOfItems * 100))% Complete "
-                    #     PercentComplete = ($CurrentItemNumber / $numberOfItems * 100)
-                    # }
-                    # Write-Progress @WriteProgressParams
                     Write-Verbose -Message "Getting extended file details: $($File.Name)"
                     #is the item a folder
                     if ($File.IsFolder) {
                         if ($Recurse) {
-                            Get-sjExtendedMetaData -Name $File.Path -Recurse 
+                            Get-sjExtendedMetaData -FullName $File.Path -Recurse 
                         }
                     } #end if $File.IsFolder
                     else {
                         Get-FileExtProperties -FileObject $File
                     }
-                    # $CurrentItemNumber ++
                 } #end foreach $file 
             } #end if ArrayItem is a container
             else {
@@ -167,4 +186,4 @@ Function Get-sjExtendedMetaData {
 #using pipeline
 #Get-ChildItem C:\Users\steve\OneDrive *.jpg | Get-sjExtendedMetaData
 # Get-sjExtendedMetaData -FullName (gi $HOME\OneDrive\Pictures\2019\gtfo2.png).FullName -Verbose
-# Get-sjExtendedMetaData -FullName $PWD
+# Get-sjExtendedMetaData -FullName $PWD.path -Properties "Name", "Date taken", "Size"
