@@ -11,6 +11,8 @@ Function Get-sjExtendedMetaData {
             added a -Recurse switch option to traverse folders
             added Write-Verbose output
         Modified by Steven Judd in Jan 2021 to do a bunch of stuff (see repo)
+            took some ideas from Jaap Brasser for the Properties parameter:
+                https://www.powershellmagazine.com/2015/04/13/pstip-use-shell-application-to-display-extended-file-attributes/
         Last edit: 20210123
         Keywords: Metadata, Storage, Files 
         HSG: HSG-2-5-14 
@@ -23,6 +25,8 @@ Function Get-sjExtendedMetaData {
         To do a recursive lookup of all metadata on all files, use the -Recurse switch.
         Get-sjExtendedMetaData -FullName (gci e:\music).FullName -Recurse
         
+        TODO:
+            Add Filter parameter and filter the files based on the filter values
     .Synopsis 
         This function gets file metadata and returns it as a custom PS Object.
     .Description 
@@ -143,11 +147,16 @@ Function Get-sjExtendedMetaData {
             if ((Get-Item -Path $ArrayItem).PSIsContainer) {
                 $objFolder = $objShell.namespace($ArrayItem) 
                 foreach ($File in $objFolder.items()) {
-                    Write-Verbose -Message "Getting extended file details: $($File.Name)"
+                    Write-Verbose -Message "Evaluating: $($File.Path)"
                     #is the item a folder
                     if ($File.IsFolder) {
                         if ($Recurse) {
-                            Get-sjExtendedMetaData -FullName $File.Path -Recurse 
+                            if ($Properties) {
+                                Get-sjExtendedMetaData -FullName $File.Path -Properties $Properties -Recurse
+                            }
+                            else {
+                                Get-sjExtendedMetaData -FullName $File.Path -Recurse
+                            }
                         }
                     } #end if $File.IsFolder
                     else {
