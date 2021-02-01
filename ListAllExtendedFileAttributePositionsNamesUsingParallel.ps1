@@ -1,4 +1,6 @@
 # Based on code from https://www.powershellmagazine.com/2015/04/13/pstip-use-shell-application-to-display-extended-file-attributes/
+
+#this is slower than the for loop version due to the cost of spinning up the threads
 param(
     [string]$FullName = $PSScriptRoot
 )
@@ -7,9 +9,10 @@ if (-not (Test-Path -Path $FullName -PathType Container)) {
 }
 Write-Host "Extended File Attributes for $FullName"
 $com = (New-Object -ComObject Shell.Application).NameSpace($FullName)
-for ($index = 0; $index -ne 400; $index++) {
-    New-Object -TypeName PSCustomObject -Property @{
-        IndexNumber = $index
-        Attribute   = $com.GetDetailsOf($com, $index)
+0..400 | ForEach-Object -Parallel {
+    $insidecom = $using:com
+    [PSCustomObject]@{
+        IndexNumber = $_
+        Attribute   = $insidecom.GetDetailsOf($insidecom, $_)
     } | Where-Object { $_.Attribute }
-} 
+}
