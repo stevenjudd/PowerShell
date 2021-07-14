@@ -1,12 +1,16 @@
 function Move-sjPhotosToYearMonthFolder {
 
+    # Count has a problem where it is counting before the filtering of the results
+    # line 70 - 90
+
     [CmdletBinding()]
     param (
         [ValidateNotNullOrEmpty()]
         [ValidateScript( { Test-Path -Path $_ -PathType Container })]
         [Alias("FullName")]
         [string]$Directory = $PWD.Path,
-        [switch]$Recurse
+        [switch]$Recurse,
+        [int]$Count
     )
     function RemoveEmptyDirectory {
         [CmdletBinding()]
@@ -27,6 +31,13 @@ function Move-sjPhotosToYearMonthFolder {
                 Remove-Item -Path $FullName
             }
         }
+    } #end function RemoveEmptyDirectory
+
+    function RelocateFile {
+        Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
+        Write-Verbose "Moved $($item.Path)"
+        Write-Verbose "   To $DestinationPath"
+        Write-Verbose ""
     }
 
     # Get Verbose
@@ -57,7 +68,13 @@ function Move-sjPhotosToYearMonthFolder {
         }
         # Wait-Debugger
         # Write-Host "Verbose:" $PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent
-        $FileResults = Get-sjExtendedMetaData @param
+        if ($Count -gt 0) {
+            $FileResults = Get-sjExtendedMetaData @param | Select-Object -First $Count
+        }
+        else {
+            $FileResults = Get-sjExtendedMetaData @param
+        }
+        
         #remove all files with yyyy\mm in the path
         $FileResults = $FileResults | Where-Object Path -notmatch '\d{4}\\\d{2}\\'
         $FilesWithoutDateTaken = $FileResults | Where-Object { -not ($_.'Date taken' -or $_.'Media created') }
@@ -101,7 +118,19 @@ function Move-sjPhotosToYearMonthFolder {
         if (-not(Test-Path -Path $DestinationPath)) {
             $null = New-Item -Path $DestinationPath -ItemType Directory -Force
         }
-        Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
+        try {
+            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru -ErrorAction Stop #-WhatIf
+            Write-Verbose "Moved $($item.Path)"
+            Write-Verbose "   To $DestinationPath"
+            Write-Verbose ""
+        }
+        catch [System.IO.IOException] {
+            $DestinationPath = "$OneDrive\Pictures\IOException"
+            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
+            Write-Verbose "Moved $($item.Path)"
+            Write-Verbose "   To $DestinationPath"
+            Write-Verbose ""
+        }
     }
 
     #move files with date/time in the name
@@ -126,6 +155,16 @@ function Move-sjPhotosToYearMonthFolder {
                 $null = New-Item -Path $DestinationPath -ItemType Directory -Force
             }
             Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
+            Write-Verbose "Moved $($item.Path)"
+            Write-Verbose "   To $DestinationPath"
+            Write-Verbose ""
+        }
+        else {
+            $DestinationPath = "$OneDrive\Pictures\Unknown Date"
+            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
+            Write-Verbose "Moved $($item.Path)"
+            Write-Verbose "   To $DestinationPath"
+            Write-Verbose ""
         }
     }
 
@@ -134,4 +173,4 @@ function Move-sjPhotosToYearMonthFolder {
 } # end function Move-PhotosToYearMonthFolder
 
 # test cases
-# Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\2001" -Recurse -Verbose
+Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Camera Roll" -Recurse -Verbose -Count 10
