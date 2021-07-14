@@ -34,10 +34,15 @@ function Move-sjPhotosToYearMonthFolder {
     } #end function RemoveEmptyDirectory
 
     function RelocateFile {
-        Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
-        Write-Verbose "Moved $($item.Path)"
-        Write-Verbose "   To $DestinationPath"
-        Write-Verbose ""
+        [CmdletBinding()]
+        param (
+            [string]$Source,
+            [string]$Destination
+        )
+
+        Move-Item -Path $Source -Destination $Destination -PassThru
+        Write-Verbose "Moved $Source"
+        Write-Verbose "   To $Destination"
     }
 
     # Get Verbose
@@ -119,17 +124,11 @@ function Move-sjPhotosToYearMonthFolder {
             $null = New-Item -Path $DestinationPath -ItemType Directory -Force
         }
         try {
-            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru -ErrorAction Stop #-WhatIf
-            Write-Verbose "Moved $($item.Path)"
-            Write-Verbose "   To $DestinationPath"
-            Write-Verbose ""
+            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
         }
         catch [System.IO.IOException] {
             $DestinationPath = "$OneDrive\Pictures\IOException"
-            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
-            Write-Verbose "Moved $($item.Path)"
-            Write-Verbose "   To $DestinationPath"
-            Write-Verbose ""
+            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
         }
     }
 
@@ -154,17 +153,11 @@ function Move-sjPhotosToYearMonthFolder {
             if (-not(Test-Path -Path $DestinationPath)) {
                 $null = New-Item -Path $DestinationPath -ItemType Directory -Force
             }
-            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
-            Write-Verbose "Moved $($item.Path)"
-            Write-Verbose "   To $DestinationPath"
-            Write-Verbose ""
+            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
         }
         else {
             $DestinationPath = "$OneDrive\Pictures\Unknown Date"
-            Move-Item -Path $item.Path -Destination $DestinationPath -PassThru #-WhatIf
-            Write-Verbose "Moved $($item.Path)"
-            Write-Verbose "   To $DestinationPath"
-            Write-Verbose ""
+            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
         }
     }
 
