@@ -27,6 +27,7 @@ Function Get-sjExtendedMetaData {
         
         TODO:
             Add Filter parameter and filter the files based on the filter values
+            Add Count parameter and limit the number of files returned to the count
     .Synopsis 
         This function gets file metadata and returns it as a custom PS Object.
     .Description 
@@ -101,6 +102,8 @@ Function Get-sjExtendedMetaData {
         [string[]]$Properties,
 
         [switch]$Recurse
+
+        # [int]$Count
     )
 
     begin {
@@ -138,15 +141,20 @@ Function Get-sjExtendedMetaData {
                 } | Where-Object { $_.Attribute }
             }
         }
+
+        # $ItemCount = 0
     } #end begin block
 
     process {
-        foreach ($ArrayItem in $FullName) { 
+        foreach ($ArrayItem in $FullName) {
             Write-Verbose "Analyzing: $ArrayItem"
             #is the item a folder?
             if ((Get-Item -Path $ArrayItem).PSIsContainer) {
                 $objFolder = $objShell.namespace($ArrayItem) 
                 foreach ($File in $objFolder.items()) {
+                    # if($Count -gt 0 -and $ItemCount -eq $Count){
+                    #     return
+                    # }
                     Write-Verbose -Message "Evaluating: $($File.Path)"
                     #is the item a folder
                     if ($File.IsFolder) {
