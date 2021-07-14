@@ -166,4 +166,5 @@ function Move-sjPhotosToYearMonthFolder {
 } # end function Move-PhotosToYearMonthFolder
 
 # test cases
-Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Camera Roll" -Recurse -Verbose -Count 10
+# Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Camera Roll" -Recurse -Verbose -Count 100
+# Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Camera Roll" -Verbose
