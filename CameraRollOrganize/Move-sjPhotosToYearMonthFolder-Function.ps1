@@ -3,13 +3,23 @@ function Move-sjPhotosToYearMonthFolder {
     # Count has a problem where it is counting before the filtering of the results
     # line 70 - 90
 
+    # Test for the $OneDrive variable
+    # Add Param for Destination root
+    # Add help text block
+
     [CmdletBinding()]
     param (
         [ValidateNotNullOrEmpty()]
         [ValidateScript( { Test-Path -Path $_ -PathType Container })]
         [Alias("FullName")]
         [string]$Directory = $PWD.Path,
+
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript( { Test-Path -Path $_ -PathType Container })]
+        [string]$Destination = "$env:OneDriveConsumer\Pictures",
+
         [switch]$Recurse,
+        
         [int]$Count
     )
     function RemoveEmptyDirectory {
@@ -17,14 +27,17 @@ function Move-sjPhotosToYearMonthFolder {
         param (
             [Parameter(ValueFromPipelineByPropertyName)]
             [string]
-            $FullName
+            $FullName,
+            $Recurse
         )
 
         process {
             Write-Verbose "Processing Directory: $FullName"
-            if (Get-ChildItem -Path $FullName) {
-                foreach ($item in (Get-ChildItem -Path $FullName -Directory)) {
-                    RemoveEmptyDirectory $item
+            if ($Recurse) {
+                if (Get-ChildItem -Path $FullName) {
+                    foreach ($item in (Get-ChildItem -Path $FullName -Directory)) {
+                        RemoveEmptyDirectory $item
+                    }
                 }
             }
             if (-not (Get-ChildItem -Path $FullName)) {
@@ -45,14 +58,16 @@ function Move-sjPhotosToYearMonthFolder {
         Write-Verbose "   To $Destination"
     }
 
-    # Get Verbose
-    # get directory
-    if ($env:OneDriveConsumer) {
-        $OneDrive = $env:OneDriveConsumer
-    }
-    else {
-        $OneDrive = $env:OneDrive
-    }
+    $CleanedDirectory = Join-Path (Split-Path -Path $Directory -Parent) (Split-Path -Path $Directory -Leaf)
+    $CleanedDestination = Join-Path (Split-Path -Path $Destination -Parent) (Split-Path -Path $Destination -Leaf)
+    
+
+    # if ($env:OneDriveConsumer) {
+    #     $OneDrive = $env:OneDriveConsumer
+    # }
+    # else {
+    #     $OneDrive = $env:OneDrive
+    # }
 
     # replace dot directories with full paths
     if ($Directory -eq ".") {
@@ -110,61 +125,84 @@ function Move-sjPhotosToYearMonthFolder {
         #check parent folder and keep if not "Camera Roll" or a year
         $CurrentDir = Split-Path -Path $item.Path
         if ($CurrentDir -match '(\d{4}|Camera Roll)') {
-            $Path = "$OneDrive\Pictures\$($item.Year)\$($item.Month)"
+            $Path = "$Destination\$($item.Year)\$($item.Month)"
             $ChildPath = $CurrentDir -replace [regex]::Escape($RootDirectory)
             $ChildPath = $ChildPath -replace '(\d{4}|Camera Roll)'
-            $DestinationPath = Join-Path -Path $Path -ChildPath $ChildPath
+            $FinalDestination = Join-Path -Path $Path -ChildPath $ChildPath
+        }
+        elseif ($CleanedDirectory -eq $CleanedDestination) {
+            $FinalDestination = "$Destination\$($item.Year)\$($item.Month)"
         }
         else {
-            $Path = "$OneDrive\Pictures\$($item.Year)\$($item.Month)"
+            $Path = "$Destination\$($item.Year)\$($item.Month)"
             $ChildPath = $CurrentDir -replace [regex]::Escape($RootDirectory)
-            $DestinationPath = Join-Path -Path $Path -ChildPath $ChildPath
+            $FinalDestination = Join-Path -Path $Path -ChildPath $ChildPath
         }
-        if (-not(Test-Path -Path $DestinationPath)) {
-            $null = New-Item -Path $DestinationPath -ItemType Directory -Force
+        if (-not(Test-Path -Path $FinalDestination)) {
+            $null = New-Item -Path $FinalDestination -ItemType Directory -Force
         }
         try {
-            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
+            RelocateFile -Source $item.Path -Destination $FinalDestination -ErrorAction Stop
         }
         catch [System.IO.IOException] {
-            $DestinationPath = "$OneDrive\Pictures\IOException"
-            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
+            $FinalDestination = "$Destination\IOException"
+            RelocateFile -Source $item.Path -Destination $FinalDestination -ErrorAction Stop
         }
     }
 
     #move files with date/time in the name
     foreach ($item in $FilesWithoutDateTaken) {
-        if ($item.Filename -match '20[0-2]\d{5}[-_]\d{4}') {
+        $CurrentDir = Split-Path $item.Path
+        if ($item.Filename -match '20[0-2][0-9]\d{4}[-_]\d{4}') {
             $Year = $Matches[0].Substring(0, 4)
             $Month = $Matches[0].Substring(4, 2)
             $null = $item | Add-Member -NotePropertyName 'Year' -NotePropertyValue $Year -PassThru | Add-Member -NotePropertyName 'Month' -NotePropertyValue $Month -PassThru
-            $CurrentDir = Split-Path $item.Path
             if ($CurrentDir -match '(^\d{4}|Camera Roll)') {
-                $Path = "$OneDrive\Pictures\$($item.Year)\$($item.Month)"
+                $Path = "$Destination\$($item.Year)\$($item.Month)"
                 $ChildPath = $CurrentDir -replace [regex]::Escape($RootDirectory)
                 $ChildPath = $ChildPath -replace '(^\d{4}|Camera Roll)'
-                $DestinationPath = Join-Path -Path $Path -ChildPath $ChildPath
+                $FinalDestination = Join-Path -Path $Path -ChildPath $ChildPath
+            }
+            elseif ($CleanedDirectory -eq $CleanedDestination) {
+                $FinalDestination = "$Destination\$($item.Year)\$($item.Month)"
             }
             else {
-                $Path = "$OneDrive\Pictures\$($item.Year)\$($item.Month)"
+                $Path = "$Destination\$($item.Year)\$($item.Month)"
                 $ChildPath = $CurrentDir -replace [regex]::Escape($RootDirectory)
-                $DestinationPath = Join-Path -Path $Path -ChildPath $ChildPath
+                $FinalDestination = Join-Path -Path $Path -ChildPath $ChildPath
             }
-            if (-not(Test-Path -Path $DestinationPath)) {
-                $null = New-Item -Path $DestinationPath -ItemType Directory -Force
+            if (-not(Test-Path -Path $FinalDestination)) {
+                $null = New-Item -Path $FinalDestination -ItemType Directory -Force
             }
-            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
+            RelocateFile -Source $item.Path -Destination $FinalDestination -ErrorAction Stop
         }
         else {
-            $DestinationPath = "$OneDrive\Pictures\Unknown Date"
-            RelocateFile -Source $item.Path -Destination $DestinationPath -ErrorAction Stop
+            if ($CurrentDir -match '(^\d{4}|Camera Roll)') {
+                $Path = "$Destination\Unknown Date"
+                $ChildPath = $CurrentDir -replace [regex]::Escape($RootDirectory)
+                $ChildPath = $ChildPath -replace '(^\d{4}|Camera Roll)'
+                $FinalDestination = Join-Path -Path $Path -ChildPath $ChildPath
+            }
+            elseif ($CleanedDirectory -eq $CleanedDestination) {
+                $FinalDestination = "$Destination\Unknown Date"
+            }
+            else {
+                $Path = "$Destination\Unknown Date"
+                $ChildPath = $CurrentDir -replace [regex]::Escape($RootDirectory)
+                $FinalDestination = Join-Path -Path $Path -ChildPath $ChildPath
+            }
+            if (-not(Test-Path -Path $FinalDestination)) {
+                $null = New-Item -Path $FinalDestination -ItemType Directory -Force
+            }
+            RelocateFile -Source $item.Path -Destination $FinalDestination -ErrorAction Stop
         }
     }
 
-    RemoveEmptyDirectory -FullName $Directory
+    RemoveEmptyDirectory -FullName $Directory -Recurse:$Recurse
 
 } # end function Move-PhotosToYearMonthFolder
 
 # test cases
 # Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Camera Roll" -Recurse -Verbose -Count 100
 # Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Camera Roll" -Verbose
+# Move-sjPhotosToYearMonthFolder -Directory "C:\Users\steve\OneDrive\Pictures\Devon new bldg" -Recurse -Verbose
