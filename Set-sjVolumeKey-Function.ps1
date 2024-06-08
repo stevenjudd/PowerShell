@@ -27,4 +27,4 @@ function Send-sjVolumeKey {
 # Test cases
 # Send-sjVolumeKey -Action 'VolumeUp'
 # Send-sjVolumeKey -Action VolumeDown
-Send-sjVolumeKey -Action Mute
+# Send-sjVolumeKey -Action Mute
