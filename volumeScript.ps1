@@ -16,6 +16,6 @@ switch ($action) {
     $shell.SendKeys([char]173)
   }
   default {
-    Write-Output 'Invalid action. Use volumeup, volumedown, or mute.'
+    Write-Warning 'Invalid action. Use volumeup, volumedown, or mute.'
   }
 }
