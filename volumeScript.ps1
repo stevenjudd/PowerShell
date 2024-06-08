@@ -2,7 +2,7 @@ function Send-sjVolumeKey {
   param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('VolumeUp', 'VolumeDown', 'Mute')]
-    [string]$action
+    [string]$Action
   )
 
   # Create a new COM object for WScript.Shell
@@ -24,5 +24,7 @@ function Send-sjVolumeKey {
   }
 }
 
-# Example usage
-Control-Volume -action 'VolumeUp'
+# Test cases
+# Send-sjVolumeKey -Action 'VolumeUp'
+# Send-sjVolumeKey -Action VolumeDown
+Send-sjVolumeKey -Action Mute
