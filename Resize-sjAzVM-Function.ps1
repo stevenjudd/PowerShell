@@ -65,12 +65,10 @@ function Resize-sjAzVM {
         NOTE: This is a dangerous command example so use with caution.
     #>
     
-    [CmdletBinding(SupportsShouldProcess=$True)]
-    param(
-        [Parameter(Mandatory=$true,
-                   Position=0,
-                   ValueFromPipelineByPropertyName=$true)]
-            <#
+  [CmdletBinding(SupportsShouldProcess = $True)]
+  param(
+    [Parameter(Mandatory, Position = 0, ValueFromPipelineByPropertyName)]
+    <#
             [ValidateScript({
                 If (Get-AzResourceGroup -Name $_)
                 {
@@ -82,12 +80,10 @@ function Resize-sjAzVM {
                 }
             })]
             #>
-            [string]$ResourceGroupName, #resource group where the VM is located
+    [string]$ResourceGroupName, #resource group where the VM is located
     
-        [Parameter(Mandatory=$true,
-                   Position=1,
-                   ValueFromPipelineByPropertyName=$true)]
-            <#
+    [Parameter(Mandatory, Position = 1, ValueFromPipelineByPropertyName)]
+    <#
             [ValidateScript({
                 If (Get-AzVM -ResourceGroupName $ResourceGroup -Name $_)
                 {
@@ -99,13 +95,11 @@ function Resize-sjAzVM {
                 }
             })]
             #>
-            [alias("Name","ComputerName")]
-            [string]$VMName, #name of the VM to resize
+    [alias('Name', 'ComputerName')]
+    [string]$VMName, #name of the VM to resize
     
-        [Parameter(Mandatory=$true,
-                   Position=2,
-                   ValueFromPipelineByPropertyName=$true)]
-            <#
+    [Parameter(Mandatory, Position = 2, ValueFromPipelineByPropertyName)]
+    <#
             [ValidateScript({
                 $availSizes = (Get-AzVMSize -ResourceGroupName $ResourceGroup -Name $VMName).Name
                 If ($availSizes -contains $_)
@@ -118,49 +112,54 @@ function Resize-sjAzVM {
                 }
             })]
             #>
-            [string]$VMSize, #size of the VM to resize to
+    [string]$VMSize, #size of the VM to resize to
         
-        [Parameter(Position=3)]
-            [switch]$Force
-    )
+    [Parameter(Position = 3)]
+    [switch]$Force
+  )
     
-    begin{}
+  begin {}
     
-    process
-    {
-        Write-Verbose "Checking VM running status and Force parameter setting"
-        if(((Get-AzVM -ResourceGroupName $ResourceGroupName -VMName $VMName -Status).Statuses.DisplayStatus -contains "VM running") -and (-not($Force)) -and (-not($WhatIfPreference.IsPresent)))
-        {
-            Write-Warning "The VM '$VMName' is running. Either stop the VM or use the -Force parameter to update the VM size and force a restart."
-        } #end if VM is running and not Force
-        else
-        {
-            try 
-            {
-                if($PSCmdlet.ShouldProcess("$VMName -- Resize to: $VMSize"))
-                {
-                    Write-Verbose "Getting VM: $VMName"
-                    $vm = Get-AzVM -ResourceGroupName $ResourceGroupName -VMName $VMName -ErrorAction Stop
-                    Write-Verbose "Setting VM size: $VMSize"
-                    $vm.HardwareProfile.VmSize = $VMSize
-                    Write-Verbose "Updating VM. This will restart the VM."
-                    Update-AzVM -VM $vm -ResourceGroupName $ResourceGroupName -ErrorAction Stop
-                }
-            }
-            catch
-            {
-                $_
-            }
-        } #end else VM is not running or Force parameter is set
-    } #end process block
+  process {
+    Write-Verbose 'Checking VM running status and Force parameter setting'
+    $GetAzVMParams = @{
+      ResourceGroupName = $ResourceGroupName
+      VMName            = $VMName
+      Status            = $true
+    }
+    if (
+      ((Get-AzVM @GetAzVMParams).Statuses.DisplayStatus -contains 'VM running') -and 
+      (-not($Force)) -and # checking to make sure Force parameter is not set
+      (-not($WhatIfPreference.IsPresent)) 
+    ) {
+      $WarningMessage = @(
+        "The VM '$VMName' is running. Either stop the VM or use the -Force parameter to update the"
+        "VM size and force a restart."
+      ) -join ' '
+      Write-Warning $WarningMessage
+    } else {
+      try {
+        if ($PSCmdlet.ShouldProcess("$VMName -- Resize to: $VMSize")) {
+          Write-Verbose "Getting VM: $VMName"
+          $vm = Get-AzVM -ResourceGroupName $ResourceGroupName -VMName $VMName -ErrorAction Stop
+          Write-Verbose "Setting VM size: $VMSize"
+          $vm.HardwareProfile.VmSize = $VMSize
+          Write-Verbose 'Updating VM. This will restart the VM.'
+          Update-AzVM -VM $vm -ResourceGroupName $ResourceGroupName -ErrorAction Stop
+        }
+      } catch {
+        $_
+      }
+    } #end else VM is not running or Force parameter is set
+  } #end process block
     
-    end{}
+  end {}
     
-    } #end Resize-sjAzVM function
+} #end Resize-sjAzVM function
     
-    #test runs
-    #Resize-sjAzVM -ResourceGroupName "RG_DataFactoryGateway" -VMName "azumsmggw001p" -VMSize "Standard_D2s_v3"
-    #Resize-sjAzVM -ResourceGroupName "RG_DataFactoryGateway" -VMName "azumsmggw001p" -VMSize "Standard_D16s_v3"
-    #Resize-sjAzVM -ResourceGroupName "RG_DataFactoryGateway" -VMName "azumsmggw001p" -VMSize "Standard_D32s_v3"
+#test runs
+#Resize-sjAzVM -ResourceGroupName "RG_DataFactoryGateway" -VMName "azumsmggw001p" -VMSize "Standard_D2s_v3"
+#Resize-sjAzVM -ResourceGroupName "RG_DataFactoryGateway" -VMName "azumsmggw001p" -VMSize "Standard_D16s_v3"
+#Resize-sjAzVM -ResourceGroupName "RG_DataFactoryGateway" -VMName "azumsmggw001p" -VMSize "Standard_D32s_v3"
     
-    #Get-AzVM -ResourceGroupName "RG_DataFactoryGateway" -Name "azumsmggw001p" | Resize-sjAzVM -VMSize "Standard_D2s_v3" 
+#Get-AzVM -ResourceGroupName "RG_DataFactoryGateway" -Name "azumsmggw001p" | Resize-sjAzVM -VMSize "Standard_D2s_v3" 

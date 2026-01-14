@@ -47,11 +47,11 @@ Function Get-sjExtendedMetaData {
         This example uses the Get-ChildItem cmdlet to do a recursive lookup of  
         all directories in the e:\music folder and then it goes through and gets 
         all of the file metada for all the files in the directories and in the  
-        subdirectories.   
+        subdirectories.
     .Example 
         Get-sjExtendedMetaData -FullName "c:\fso","E:\music\Big Boi" 
         Gets file metadata from files in both the c:\fso directory and the 
-        e:\music\big boi directory. 
+        e:\music\big boi directory.
     .Example 
         $meta = Get-sjExtendedMetaData -FullName "E:\music" 
         This example gets file metadata from all files in the root of the 
