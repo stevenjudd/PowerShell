@@ -1,8 +1,8 @@
 function Resize-sjAzVM {
 
-  #Requires -Modules Az.Compute
+    #Requires -Modules Az.Compute
     
-  <#
+    <#
     .NOTES
         Function written to update the size of a VM
         Written by Steven Judd on 2018/06/12
@@ -67,7 +67,7 @@ function Resize-sjAzVM {
     
   [CmdletBinding(SupportsShouldProcess = $True)]
   param(
-    [Parameter(Mandatory, Position, ValueFromPipelineByPropertyName)]
+    [Parameter(Mandatory, Position = 0, ValueFromPipelineByPropertyName)]
     <#
             [ValidateScript({
                 If (Get-AzResourceGroup -Name $_)
