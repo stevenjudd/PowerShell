@@ -36,7 +36,7 @@
     Each item passed will output the NTFS permissions and be recursively
     scanned for items with unique NTFS permissions.
   .EXAMPLE
-    Invoke-Command (Get-ADComputer -Filter {Name -like "*wbii*p"}).Name -ScriptBlock {. '\\odcnafsvs001p\judds$\documents\scripts\PowerShell\Functions\wip\Get-sjNtfsPermissions-Function.ps1';Get-sjNtfsPermissions c:\inetpub} | Export-Csv $env:TEMP\PermissionsAudit.csv –NoTypeInformation;& $env:TEMP\PermissionsAudit.csv
+    Invoke-Command (Get-ADComputer -Filter {Name -like "*wbii*p"}).Name -ScriptBlock {. '\\odcnafsvs001p\judds$\documents\scripts\PowerShell\Functions\wip\Get-sjNtfsPermissions-Function.ps1';Get-sjNtfsPermissions c:\inetpub} | Export-Csv $env:TEMP\PermissionsAudit.csv -NoTypeInformation;& $env:TEMP\PermissionsAudit.csv
     This command uses Invoke-Command to load and execute the Get-sjNtfsPermissions
     function on the path C:\inetpub to all the servers containing "wbii" in the
     name, then it passes the results to Export-Csv to a file named
@@ -90,14 +90,20 @@
         Add-Member -MemberType NoteProperty -Name 'Path' -Value $item -PassThru |
         Select-Object $outputProperties
       if ($Recurse -and (Get-Item -Path $item).PSIsContainer) {
+        Write-Information "Building recursive file list for $item" -InformationAction Continue
         $childItem = Get-ChildItem -Path $item -Recurse
         if ($null -ne $childItem) {
+          # add a write-progress command to show progress on large folder structures
+          $fileCount = 1
+          $fileTotal = $childItem.Count
           foreach ($subItem in $childItem) {
+            Write-Progress -Activity "Processing items in $item" -Status "Processing $fileCount of $fileTotal" -PercentComplete (($fileCount / $fileTotal) * 100)
             Write-Verbose "Checking $($subItem.FullName)"
             (Get-Acl -Path $subItem.FullName).Access |
               Where-Object { $_.IsInherited -eq $false } |
               Add-Member -MemberType NoteProperty -Name 'Path' -Value $($subItem.fullname).ToString() -PassThru |
               Select-Object $outputProperties
+            $fileCount++
           }
         } #end if $subItems -ne $null
       } #end if Recurse switch is set and item is a container
@@ -112,6 +118,6 @@
 # Get-sjNtfsPermissions
 # Get-sjNtfsPermissions -Verbose
 # Get-sjNtfsPermissions -Recurse -Verbose
-#Get-sjNtfsPermissions -FullName "$env:TEMP\TestFolder"
-#Get-sjNtfsPermissions -FullName "$env:TEMP\TestFolder" -Recurse -Verbose
-#Get-ChildItem C:\Temp | Get-sjNtfsPermissions -Recurse -
+# Get-sjNtfsPermissions -FullName "$env:TEMP\TestFolder"
+# Get-sjNtfsPermissions -FullName "$env:TEMP\TestFolder" -Recurse -Verbose
+# Get-ChildItem C:\Temp | Get-sjNtfsPermissions -Recurse
