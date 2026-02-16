@@ -34,7 +34,7 @@ Write-Host "Export directory: $ScriptDir"
 $driveLabel = Set-CleanName($DriveRoot)
 $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$driveLabel.acl")
 Write-Host "Exporting icacls for '$DriveRoot' to '$outFile'"
-icacls $DriveRoot /save $outFile /T /C
+icacls $DriveRoot /save $outFile /C
 
 # 2) List all files in the root of X: and export icacls for each file
 Get-ChildItem -Path $DriveRoot -File -Force | ForEach-Object {
