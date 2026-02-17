@@ -22,6 +22,7 @@ function Get-CleanName {
   return $clean
 }
 
+Wait-Debugger
 $DriveRoot = 'X:\'
 
 if (-not (Test-Path -Path $DriveRoot)) {
@@ -41,12 +42,13 @@ Write-Host "Exporting icacls for '$DriveRoot' to '$outFile'"
 icacls $DriveRoot /save $outFile /C
 
 # 2) List all files in the root of X: and export icacls for each file
-Get-ChildItem -Path $DriveRoot -File -Force | ForEach-Object {
-  $clean = Get-CleanName($_.Name)
+$fileList = Get-ChildItem -Path $DriveRoot -File -Force
+foreach ($file in $fileList) {
+  $clean = Get-CleanName($file.Name)
   if (-not $clean) { $clean = [System.IO.Path]::GetRandomFileName().Replace('.', '') }
   $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
-  Write-Host "Exporting icalcs for '$($_.FullName)' to '$outFile'"
-  icacls $_.FullName /save $outFile /C
+  Write-Host "Exporting icalcs for '$($file.FullName)' to '$outFile'"
+  icacls $file.FullName /save $outFile /C
 }
 
 # Helper scriptblock for recursive export used by jobs
@@ -77,13 +79,14 @@ if ($geo) {
   icacls $geo.FullName /save $outFile /C
   
   # Start a job for each subdirectory inside GEOLOGY (recursive)
-  Get-ChildItem -Path $geo.FullName -Directory -Force | ForEach-Object {
-    $clean = Get-CleanName($_.Name)
+  $dirList = Get-ChildItem -Path $geo.FullName -Directory -Force
+  foreach ($dir in $dirList) {
+    $clean = Get-CleanName($dir.Name)
     if (-not $clean) { $clean = [System.IO.Path]::GetRandomFileName().Replace('.', '') }
     $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
-    Write-Host "Starting job for GEOLOGY subdir '$($_.FullName)' to '$outFile'"
-    Start-Job -Name "icaclsExport_$clean" -ScriptBlock $jobScript -ArgumentList $_.FullName, $outFile | Out-Null
-    }
+    Write-Host "Starting job for GEOLOGY subdir '$($dir.FullName)' to '$outFile'"
+    Start-Job -Name "icaclsExport_$clean" -ScriptBlock $jobScript -ArgumentList $dir.FullName, $outFile | Out-Null
+  }
   
 }
 
