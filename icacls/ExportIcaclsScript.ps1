@@ -13,9 +13,13 @@
     `icaclsExportRoot_<CleanName>.acl` where non-alphanumeric characters are removed from <CleanName>.
 #>
 
-function Set-CleanName {
+function Get-CleanName {
   param([string]$Name)
-  return ($Name -replace '[^A-Za-z0-9]', '')
+  $clean = $Name -replace '[^A-Za-z0-9]', ''
+  if (-not $clean) {
+    throw -Message "Cleaned name for '$Name' is empty after removing non-alphanumeric characters." -Category InvalidArgument -ErrorAction Stop
+  }
+  return $clean
 }
 
 $DriveRoot = 'X:\'
@@ -30,18 +34,18 @@ if (-not $ScriptDir) { $ScriptDir = Get-Location }
 
 Write-Host "Export directory: $ScriptDir"
 
-# 1) Export icacls for the root of the mapped drive (recursive)
-$driveLabel = Set-CleanName($DriveRoot)
+# 1) Export icacls for the root of the mapped drive
+$driveLabel = Get-CleanName($DriveRoot)
 $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$driveLabel.acl")
 Write-Host "Exporting icacls for '$DriveRoot' to '$outFile'"
 icacls $DriveRoot /save $outFile /C
 
 # 2) List all files in the root of X: and export icacls for each file
 Get-ChildItem -Path $DriveRoot -File -Force | ForEach-Object {
-  $clean = Set-CleanName($_.Name)
+  $clean = Get-CleanName($_.Name)
   if (-not $clean) { $clean = [System.IO.Path]::GetRandomFileName().Replace('.', '') }
   $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
-  Write-Host "Exporting file:`t$($_.FullName) -> $outFile"
+  Write-Host "Exporting icalcs for '$($_.FullName)' to '$outFile'"
   icacls $_.FullName /save $outFile /C
 }
 
@@ -52,39 +56,33 @@ $jobScript = {
 }
 
 # 3) For each directory in root, start a job exporting icacls recursively, except GEOLOGY
-$rootDirs = Get-ChildItem -Path $DriveRoot -Directory -Force
-$geo = $rootDirs | Where-Object { $_.Name -ieq 'GEOLOGY' } | Select-Object -First 1
-
-foreach ($d in $rootDirs) {
-  if ($geo -and ($d.FullName -eq $geo.FullName)) { continue }
-  $clean = Set-CleanName($d.Name)
-  if (-not $clean) { $clean = 'dir' }
+$rootDirs = Get-ChildItem -Path $DriveRoot -Directory -Force | Where-Object { $_.Name -ne 'GEOLOGY' }
+foreach ($item in $rootDirs) {
+  $clean = Get-CleanName($item.Name)
+  if (-not $clean) { $clean = [System.IO.Path]::GetRandomFileName().Replace('.', '') }
   $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
-  Write-Host "Starting job for directory:`t$d -> $outFile"
-  Start-Job -ScriptBlock $jobScript -ArgumentList $d.FullName, $outFile | Out-Null
-  
+  Write-Host "Starting job for directory '$item' to '$outFile'"
+  Start-Job -Name "icaclsExport_$clean" -ScriptBlock $jobScript -ArgumentList $item.FullName, $outFile | Out-Null
 }
 
 # 4) Handle GEOLOGY specially (if present)
+$geo = $rootDirs | Where-Object { $_.Name -ieq 'GEOLOGY' } | Select-Object -First 1
 if ($geo) {
   Write-Host "Handling GEOLOGY: $($geo.FullName)"
   
   # Export icacls for files directly in GEOLOGY (non-recursive)
-  Get-ChildItem -Path $geo.FullName -File -Force | ForEach-Object {
-    $clean = Set-CleanName($_.Name)
-    if (-not $clean) { $clean = 'file' }
-    $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
-    Write-Host "Exporting GEOLOGY file:`t$($_.FullName) -> $outFile"
-    icacls $_.FullName /save $outFile /C
-  }
+  $clean = Get-CleanName($geo.Name)
+  $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
+  Write-Host "Exporting directory '$($_.FullName)' to '$outFile'"
+  icacls $geo.FullName /save $outFile /C
   
   # Start a job for each subdirectory inside GEOLOGY (recursive)
   Get-ChildItem -Path $geo.FullName -Directory -Force | ForEach-Object {
-    $clean = Set-CleanName($_.Name)
-    if (-not $clean) { $clean = 'geodir' }
+    $clean = Get-CleanName($_.Name)
+    if (-not $clean) { $clean = [System.IO.Path]::GetRandomFileName().Replace('.', '') }
     $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
-    Write-Host "Starting job for GEOLOGY subdir:`t$($_.FullName) -> $outFile"
-    Start-Job -ScriptBlock $jobScript -ArgumentList $_.FullName, $outFile | Out-Null
+    Write-Host "Starting job for GEOLOGY subdir '$($_.FullName)' to '$outFile'"
+    Start-Job -Name "icaclsExport_$clean" -ScriptBlock $jobScript -ArgumentList $_.FullName, $outFile | Out-Null
     }
   
 }
