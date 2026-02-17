@@ -83,9 +83,9 @@ if ($geo) {
   foreach ($dir in $dirList) {
     $clean = Get-CleanName($dir.Name)
     if (-not $clean) { $clean = [System.IO.Path]::GetRandomFileName().Replace('.', '') }
-    $outFile = Join-Path $ScriptDir ("icaclsExportRoot_$clean.acl")
+    $outFile = Join-Path $ScriptDir ("icaclsExportRoot_geo_$clean.acl")
     Write-Host "Starting job for GEOLOGY subdir '$($dir.FullName)' to '$outFile'"
-    Start-Job -Name "icaclsExport_$clean" -ScriptBlock $jobScript -ArgumentList $dir.FullName, $outFile
+    Start-Job -Name "icaclsExport_geo_$clean" -ScriptBlock $jobScript -ArgumentList $dir.FullName, $outFile
   }
   
 }
